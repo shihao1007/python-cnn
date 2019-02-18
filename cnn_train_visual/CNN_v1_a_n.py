@@ -9,6 +9,9 @@ This program is for prediction of a and real n, imag n
 Save net work function is provided in the comments
 Prediction visualization is provided in the bottom as well
 
+Editor:
+    Shihao Ran
+    STIM Laboratory
 """
 import numpy as np
 from matplotlib import pyplot as plt
@@ -29,18 +32,16 @@ regressor = Sequential()
 
 regressor.add(Convolution2D(128, (3, 3), input_shape = (image_res, image_res, 2), activation = 'relu'))
 
+# dropout isn't seems necessary here
 #regressor.add(Dropout(rate = 0.2))
 
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
 
-#regressor.add(Dropout(rate = 0.2))
-
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-
 
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
@@ -50,8 +51,6 @@ regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Convolution2D(32, (3, 3), activation = 'relu'))
-
-#regressor.add(Dropout(rate = 0.2))
 
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
@@ -72,22 +71,6 @@ y_data = np.load(r'D:\irimages\irholography\CNN\data_v2\lable_data.bin.npy')
 y_data = np.reshape(y_data, (3, num_total_sample))
 y_data = np.swapaxes(y_data, 0, 1)
 
-###
-##normalize features
-#y_mean = np.zeros((3))
-#y_var = np.zeros((3))
-#for i in range(3):
-#    y_mean[i] = np.mean(y_data[:, i])
-#    y_var[i] = np.var(y_data[:, i])
-#    
-#    y_data[:, i] = (y_data[:, i] - y_mean[i])/y_var[i]
-
-#y_data[:, 0] *= 10
-#y_data[:, 2] /= 100
-
-    
-
-
 X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.2)
 
 regressor.fit(x = X_train, y = y_train, batch_size = 50,
@@ -95,21 +78,6 @@ regressor.fit(x = X_train, y = y_train, batch_size = 50,
               validation_split = 0.2)
 
 y_pred = regressor.predict(X_test)
-
-#
-###
-##de-normalize features
-#for i in range(3):
-#    y_pred[:, i] = y_pred[:, i] * y_var[i] + y_mean[i]
-
-#y_pred[:, 0] /= 10
-#y_test[:, 0] /= 10
-#
-#y_pred[:, 2] *= 10
-#y_test[:, 2] *= 10
-
-
-
 
 plt.figure()
 plt.subplot(3,1,1)

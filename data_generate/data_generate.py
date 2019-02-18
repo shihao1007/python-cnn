@@ -16,7 +16,6 @@ or the B vector fot down stream process
 
 Editor:
     Shihao Ran
-    
     STIM Laboratory
 """
 

@@ -3,13 +3,19 @@
 Created on Thu Jan 31 16:13:03 2019
 
 CNN for predict the B vector from the simulated images
+more sophasticated model with five convolutional layers with max pooling
+two fully connected layers with more nuerons
 
-@author: shihao
+Editor:
+    Shihao Ran
+    STIM Laboratory
 """
 
+# import numpy and matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
+# import keras and sklearn packages
 from keras.models import Sequential
 from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D
@@ -20,47 +26,42 @@ from keras.layers.normalization import BatchNormalization
 from sklearn.model_selection import train_test_split
 from keras.models import load_model
 
+# specify the image resolution and the number of images in the data set
 image_res = 128
 num_total_sample = 15625
 
+# initialize the network
 regressor = Sequential()
 
+# add the first convolutional layer with the input shape identical to the image data
 regressor.add(Convolution2D(128, (3, 3), input_shape = (image_res, image_res, 2), activation = 'relu'))
+# follow with a max pooling layer to decrease the feature map
+regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
-#regressor.add(Dropout(rate = 0.2))
-
+# repeat adding convolutional layers and max pooling layers to make the network refine the features
+regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-
-#regressor.add(Dropout(rate = 0.2))
-
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-
-
-regressor.add(MaxPooling2D(pool_size = (2, 2)))
-
-regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-
-
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Convolution2D(32, (3, 3), activation = 'relu'))
-
-#regressor.add(Dropout(rate = 0.2))
-
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
+# add a flatten function to convert the feature map to a feature vector
 regressor.add(Flatten())
 
+# add two fully connected layers to output the results
 regressor.add(Dense(512, activation = 'relu'))
-
 regressor.add(Dense(44))
 
+# compile the network with the specified loss function
 regressor.compile('adam', loss = 'mean_squared_error')
 
+# load data set and do data pre-process
 X_data = np.load(r'D:\irimages\irholography\CNN\data_v5_B\im_data.bin.npy')
 X_data = np.reshape(X_data, (image_res, image_res, 2, num_total_sample))
 X_data = np.swapaxes(X_data, 0, -1)
@@ -87,15 +88,15 @@ y_data = np.swapaxes(y_data, 0, 1)
 #y_data[:, 0] *= 10
 #y_data[:, 2] /= 100
 
-    
-
-
+# split the data set into training set and testing set with a 0.2 ratio
 X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.2)
 
+# train the network with the traning data set with a 0.2 validation ratio
 regressor.fit(x = X_train, y = y_train, batch_size = 50,
               epochs = 25,
               validation_split = 0.2)
 
+# predict the results from the testing set
 y_pred = regressor.predict(X_test)
 
 

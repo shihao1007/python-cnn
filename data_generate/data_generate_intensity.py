@@ -19,7 +19,6 @@ Features are the intensity of the field instead of the amplitude and phase
 
 Editor:
     Shihao Ran
-    
     STIM Laboratory
 """
 

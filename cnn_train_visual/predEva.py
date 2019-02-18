@@ -2,14 +2,18 @@
 """
 Created on Sat Jan 26 16:29:20 2019
 
-@author: shihao
+accuracy evaluation of the prediction VS. the test data set
+print out the percentage of the relative error sum along the B vector (second case)
+or the relative average error for n and a (first case)
 
-prediction evaluation
+Editor:
+    Shihao Ran
+    STIM Laboratory
 """
+import numpy as np
 
 #
 ##evaluation for a and n
-#import numpy as np
 #
 #y_off = y_test - y_pred
 #
@@ -33,4 +37,3 @@ y_off_ratio = y_off_sum / y_test_sum
 y_off_perc = np.abs(np.average(y_off_ratio) * 100)
 
 print('Relative B Error (Vector Sum): ' + str(y_off_perc) + ' %')
-
