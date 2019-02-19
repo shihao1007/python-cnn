@@ -628,6 +628,7 @@ def getTotalField(k, k_j, n, res, a, ps, pp, numSample, NA_in, NA_out, option):
     return Etot, B
     
 
+# specify parameters for the forward model
 k = [0, 0, -1]
 res = 64
 numSample = 1
@@ -637,64 +638,75 @@ numFrames = 70
 option = 'Horizontal'
 parentDir = r'D:\irimages\irholography\CNN\data_v2'
 
+# single plane wave situation so the monte-carlo sampling is set to the direction vector
 k_j = k
 
-
+# set ranges of the features of the data set
+# refractive index
 n_r_min = 1.1
 n_r_max = 2.0
-
+# attenuation coefficient
 n_i_min = 0.01
 n_i_max = 0.05
-
+# sphere radius
 a_min = 5
 a_max = 10
 
+# set the size of the features
 nb_nr = 20
 nb_ni = 20
 nb_a = 20
 
+# initialize features
 nr = np.linspace(n_r_min, n_r_max, nb_nr)
 ni = np.linspace(n_i_min, n_i_max, nb_ni)
 a = np.linspace(a_min, a_max, nb_a)
 
-
+# allocate space for data set
 sphere_data = np.zeros((3, nb_nr, nb_ni, nb_a))
 B_data_real = np.zeros((22, nb_nr, nb_ni, nb_a))
 B_data_imag = np.zeros((22, nb_nr, nb_ni, nb_a))
 
+# initialize progress indicator
 cnt = 0
+
+# the data set is too big to fit it as a whole in the memory
+# therefore split them into sub sets for different sphere sizes
 for h in range(nb_a):
-    
+    # for each sphere size
     im_data = np.zeros((res * 5, res * 5, 2, nb_nr, nb_ni))
+    # generate file name
     im_dir = r'D:\irimages\irholography\CNN\data_v7_padded\im_data' + '%3.3d'% (h)
     
     for i in range(nb_nr):
         for j in range(nb_ni):
-            
+            # for each specific sphere
             n0 = nr[i] + ni[j] * 1j
             a0 = a[h]
             #position of the visualization plane, along z axis
             pp = a0
             ps0 = [0, 0, 0]
+            # calculatge the field and B vector
             Et_0, B = getTotalField(k, k_j, n0, res, a0, ps0, pp, numSample, NA_in, NA_out, option)
             
+            # save real and imaginary part of the field
             im_data[:, :, 0, i, j] = np.real(Et_0)
             im_data[:, :, 1, i, j] = np.imag(Et_0)
-#            
+            
+            # save label
             sphere_data[:, i, j, h] = [nr[i], ni[j], a[h]]
             
+            #save B vector
             B_data_real[:np.size(B), i, j, h] = np.real(B)
             B_data_imag[:np.size(B), i, j, h] = np.imag(B)
             
+            # print progress
             cnt += 1
-            
             sys.stdout.write('\r' + str(cnt / 15625 * 100)  + ' %')
             sys.stdout.flush() # important
 
+    # save the data
     np.save(im_dir, im_data)
-
-             
-
 
 np.save(r'D:\irimages\irholography\CNN\data_v7_padded\lable_data', sphere_data)
 np.save(r'D:\irimages\irholography\CNN\data_v7_padded\B_data_real', B_data_real)
