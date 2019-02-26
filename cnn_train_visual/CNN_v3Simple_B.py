@@ -14,7 +14,6 @@ ATTENTION: commend out the save model and file lines before running the script
 
 Editor:
     Shihao Ran
-    
     STIM Laboratory
 """
 
@@ -31,8 +30,8 @@ from keras.layers.normalization import BatchNormalization
 from sklearn.model_selection import train_test_split
 from keras.models import load_model
 
-image_res = 128
-num_total_sample = 15625
+image_res = 64
+num_total_sample = 8000
 
 regressor = Sequential()
 
@@ -52,13 +51,13 @@ regressor.add(Dense(44))
 
 regressor.compile('adam', loss = 'mean_squared_error')
 
-X_data = np.load(r'D:\irimages\irholography\CNN\data_v6_B\im_data.bin.npy')
+X_data = np.load(r'D:\irimages\irholography\CNN\data_v7_padded\im_data_intensity.npy')
 X_data = np.reshape(X_data, (image_res, image_res, 1, num_total_sample))
 X_data = np.swapaxes(X_data, 0, -1)
 X_data = np.swapaxes(X_data, -2, -1)
 
-y_data_real = np.load(r'D:\irimages\irholography\CNN\data_v6_B\B_data_real.bin.npy')
-y_data_imag = np.load(r'D:\irimages\irholography\CNN\data_v6_B\B_data_imag.bin.npy')
+y_data_real = np.load(r'D:\irimages\irholography\CNN\data_v7_padded\B_data_real.npy')
+y_data_imag = np.load(r'D:\irimages\irholography\CNN\data_v7_padded\B_data_imag.npy')
 
 y_data = np.concatenate((y_data_real, y_data_imag), axis = 0)
 
@@ -123,10 +122,10 @@ y_pred = regressor.predict(X_test)
 #
 #get_available_gpus()
 #
-#regressor.save(r'D:\irimages\irholography\CNN\CNN_v8_2_conval_layers_intensity\model_v1.h5')
+regressor.save(r'D:\irimages\irholography\CNN\CNN_v9_bandpass\intensity_simple.h5')
 ###
-#np.save(r'D:\irimages\irholography\CNN\CNN_v8_2_conval_layers_intensity\X_test.bin', X_test)
-#np.save(r'D:\irimages\irholography\CNN\CNN_v8_2_conval_layers_intensity\y_test.bin', y_test)
+np.save(r'D:\irimages\irholography\CNN\CNN_v9_bandpass\X_test.bin', X_test)
+np.save(r'D:\irimages\irholography\CNN\CNN_v9_bandpass\y_test.bin', y_test)
 #
 #
 ##

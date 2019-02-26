@@ -58,7 +58,7 @@ class mieScattering:
         # position of the focal point
         self.pf = np.asarray([0, 0, 0])
         # padding for displaying the figure
-        self.padding = 2
+        self.padding = 1
         # amplitude of the incoming electric field
         self.E0 = 1
         # in and out numerical aperture of the condenser
@@ -521,10 +521,11 @@ class mieScattering:
         # add to the final field
         
         # left hand side, H matrix of the linear system
-#        hlr0 = hlkr_plcostheta * twolplus1_il
+        hlr0 = hlkr_plcostheta * twolplus1_il
         
+        Bhlkr = hlr0 * B
         
-        Es = phase * np.sum(hlkr_plcostheta * pre_B, axis = 2)
+        Es = phase * np.sum(Bhlkr, axis = 2)
         Ei = phase * np.sum(jlknr_plcostheta * A, axis = 2)
             
         # scale the value down
@@ -684,10 +685,11 @@ for h in range(nb_a):
             n0 = nr[i] + ni[j] * 1j
             a0 = a[h]
             #position of the visualization plane, along z axis
-            pp = a0
+            pp = a_max
             ps0 = [0, 0, 0]
             # calculatge the field and B vector
             Et_0, B = getTotalField(k, k_j, n0, res, a0, ps0, pp, numSample, NA_in, NA_out, option)
+            Es = Et_0 -1
             
             # save real and imaginary part of the field
             im_data[:, :, 0, i, j] = np.real(Et_0)
