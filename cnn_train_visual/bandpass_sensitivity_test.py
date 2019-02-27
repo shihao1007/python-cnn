@@ -31,7 +31,7 @@ import sys
 
 def BPF(halfgrid, simRes, NA_in, NA_out):
     #create a bandpass filter
-        #change coordinates into frequency domain
+    #change coordinates into frequency domain
         
     df = 1/(halfgrid*2)
     
@@ -70,18 +70,17 @@ def BPF(halfgrid, simRes, NA_in, NA_out):
     
     return BPF
     
-def imgAtDetec(Etot, bpf):
-    #2D fft to the total field
-    Et_d = np.fft.fft2(Etot)
-#    Ef_d = np.fft.fft2(Ef)
+def apply_bpf(Etot, bpf):
+    # apply the bandpass filter to the input field
     
-    #apply bandpass filter to the fourier domain
+    #2D fft to the input field
+    Et_d = np.fft.fft2(Etot)
+    
+    #apply bandpass filter in the fourier domain
     Et_d *= bpf
-#    Ef_d *= bpf
     
     #invert FFT back to spatial domain
     Et_bpf = np.fft.ifft2(Et_d)
-#    Ef_bpf = np.fft.ifft2(Ef_d)
     
     #initialize cropping
     cropsize = res
@@ -90,33 +89,44 @@ def imgAtDetec(Etot, bpf):
     
     D_Et = np.zeros((cropsize, cropsize), dtype = np.complex128)
     D_Et = Et_bpf[startIdx:endIdx+1, startIdx:endIdx+1]
-#    D_Ef = np.zeros((cropsize, cropsize), dtype = np.complex128)
-#    D_Ef = Ef_bpf[startIdx:endIdx, startIdx:endIdx]
-
+    
     return D_Et
 
 def bandpass_filtering(bpf):
+    # apply bandpass filter to all the data sets
     
     # allocate space for the image data set
     im_data_complex = np.zeros((res, res, 2, nb_nr, nb_ni, nb_a))
     im_data_intensity = np.zeros((res, res, 1, nb_nr, nb_ni, nb_a))
-
+    
+    # initialize a counter for printing progress
     cnt = 0
+    
     # band pass and crop
     for h in range(nb_a):
+        # for all the sphere sizes
+        # load in the data set for this sphere size
         sphere_dir = data_dir + '\im_data%3.3d'% (h) + '.npy'
         sphere_data = np.load(sphere_dir)
         
+        # reconstrut the complex field to calculate the intensity image
         complex_im = sphere_data[:,:,0,:,:] + sphere_data[:,:,1,:,:] * 1j
         intensity_im = np.abs(complex_im) ** 2
         
+        # for different n values in this data set
         for i in range(nb_nr):
             for j in range(nb_ni):
-                filtered_im_complex = imgAtDetec(complex_im[:, :, i, j], bpf)
+                
+                # apply bandpass filter to the complex field
+                filtered_im_complex = apply_bpf(complex_im[:, :, i, j], bpf)
+                
+                # save the complex image as two channel images
                 im_data_complex[:, :, 0, i, j, h] = np.real(filtered_im_complex)
                 im_data_complex[:, :, 1, i, j, h] = np.imag(filtered_im_complex)
                 
-                filtered_im_intensity = imgAtDetec(intensity_im[:, :, i, j], bpf)
+                # apply bandpass filter to the intensity image
+                filtered_im_intensity = apply_bpf(intensity_im[:, :, i, j], bpf)
+                # after bandpass the values are complex so calculate the intensity again
                 im_data_intensity[:, :, 0, i, j, h] = np.abs(filtered_im_intensity) ** 2
                 
                 # print progress
@@ -127,22 +137,31 @@ def bandpass_filtering(bpf):
     return im_data_complex, im_data_intensity
 
 def calculate_error(imdata, option = 'complex'):
+    # make a prediction based on the input data set
+    # calculate the relative error between the prediction and the testing ground truth
+    # if the input data is intensity images, set the channel number to 1
+    # otherwise it is complex images, set the channel number to 2
     if option == 'intensity':
         channel = 1
     else:
         channel = 2
     
+    # pre process the input data
     X_data = np.reshape(imdata, (res, res, channel, nb_img))
     X_data = np.swapaxes(X_data, 0, -1)
     X_data = np.swapaxes(X_data, -2, -1)
     
+    # split the data set to get the testing data
+    # keep the random state same as when split the training data to make sure the testing data has not been seen by the CNN
     X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.2, random_state = 5)
     
+    # use different CNN to test depend on the data set type
     if option == 'intensity':
         y_pred = intensity_CNN.predict(X_test)
     else:
         y_pred = complex_CNN.predict(X_test)
-     
+    
+    # calculate the relative error of the sum of the B vector
     y_off = y_test - y_pred
     y_off_sum = np.sum(y_off, axis = 1)
     y_test_sum = np.sum(y_test, axis = 1)
@@ -152,17 +171,26 @@ def calculate_error(imdata, option = 'complex'):
     return y_off_perc
 
 # specify parameters of the simulation
+# resolution of the image before padding
 res = 128
+# padding number
 padding = 2
+# field of view
 fov = 30
+# wave length
 lambDa = 2 * np.pi
+# half of the grid size
 halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
+# center obscuration of the objective when calculating bandpass filter
 NA_in = 0.0
-NA_out = 1.0
+# numerical aperture of the objective
+NA_out = 1.5
 
-nb_NA = 3
+# number of different numerical apertures to be tested
+nb_NA = 30
 
-NA_list = np.arange(0.1, NA_out, NA_out / nb_NA)
+# allocate a list of the NA
+NA_list = np.linspace(0.1, NA_out, nb_NA)
 
 # get the resolution after padding the image
 simRes = res * (padding *2 + 1)
@@ -172,14 +200,16 @@ nb_a = 20
 nb_nr = 20
 nb_ni = 20
 
+# total number of images in the data set
 nb_img = nb_a * nb_nr * nb_ni
 
 # pre load y train and y test
 y_data_real = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_real.npy')
 y_data_imag = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_imag.npy')
 
+# concatenate the imaginary part of the B vector to the end of the real part of B
 y_data = np.concatenate((y_data_real, y_data_imag), axis = 0)
-
+# rearrange them
 y_data = np.reshape(y_data, (44, nb_img))
 y_data = np.swapaxes(y_data, 0, 1)
 
@@ -194,6 +224,7 @@ data_dir = r'D:\irimages\irholography\CNN\data_v8_padded'
 complex_error = np.zeros((nb_NA), dtype = np.float64)
 intensity_error = np.zeros((nb_NA), dtype = np.float64)
 
+# for each NA to be tested
 for NA_idx in range(nb_NA):
     
     # calculate the band pass filter
@@ -211,6 +242,11 @@ for NA_idx in range(nb_NA):
     # handle intensity model second
     intensity_error[NA_idx] = calculate_error(im_data_intensity, option = 'intensity')
 
+# save the error file
+np.save(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\complex_error', complex_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\intensity_error', intensity_error)
+
+# plot out the error
 plt.figure()
 plt.plot(NA_list, complex_error, label = 'Complex CNN')
 plt.plot(NA_list, intensity_error, label = 'Intensity CNN')
