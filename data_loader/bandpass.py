@@ -71,7 +71,7 @@ def imgAtDetec(Etot, bpf):
     
     #initialize cropping
     cropsize = res
-    startIdx = int(np.fix(simRes /2 + 1) - np.floor(cropsize/2))
+    startIdx = int(np.fix(simRes /2) - np.floor(cropsize/2))
     endIdx = int(startIdx + cropsize - 1)
     
     D_Et = np.zeros((cropsize, cropsize), dtype = np.complex128)
@@ -83,12 +83,12 @@ def imgAtDetec(Etot, bpf):
 
 # specify parameters of the simulation
 res = 128
-padding = 2
-fov = 30
+padding = 0
+fov = 16
 lambDa = 2 * np.pi
 halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
-NA_in = 0.0
-NA_out = 0.9
+NA_in = 0.3
+NA_out = 0.8
 
 # get the resolution after padding the image
 simRes = res * (padding *2 + 1)
@@ -97,30 +97,28 @@ simRes = res * (padding *2 + 1)
 bpf = BPF(halfgrid, simRes, NA_in, NA_out)
 
 # dimention of the data set
-nb_a = 20
-nb_nr = 20
-nb_ni = 20
+num = 20
 
-nb_img = nb_a * nb_nr * nb_ni
+num_samples = num ** 3
 
 # parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v8_padded'
+data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field'
 
 # allocate space for the image data set
-im_data_complex = np.zeros((res, res, 2, nb_nr, nb_ni, nb_a))
-im_data_intensity = np.zeros((res, res, 1, nb_nr, nb_ni, nb_a))
+im_data_complex = np.zeros((res, res, 2, num, num, num))
+im_data_intensity = np.zeros((res, res, 1, num, num, num))
 
 cnt = 0
 # band pass and crop
-for h in range(nb_a):
+for h in range(num):
     sphere_dir = data_dir + '\im_data%3.3d'% (h) + '.npy'
     sphere_data = np.load(sphere_dir)
     
     complex_im = sphere_data[:,:,0,:,:] + sphere_data[:,:,1,:,:] * 1j
     intensity_im = np.abs(complex_im) ** 2
     
-    for i in range(nb_nr):
-        for j in range(nb_ni):
+    for i in range(num):
+        for j in range(num):
             filtered_im_complex = imgAtDetec(complex_im[:, :, i, j], bpf)
             im_data_complex[:, :, 0, i, j, h] = np.real(filtered_im_complex)
             im_data_complex[:, :, 1, i, j, h] = np.imag(filtered_im_complex)
@@ -130,7 +128,7 @@ for h in range(nb_a):
             
             # print progress
             cnt += 1
-            sys.stdout.write('\r' + str(cnt / nb_img * 100)  + ' %')
+            sys.stdout.write('\r' + str(cnt / num_samples * 100)  + ' %')
             sys.stdout.flush() # important
 
 np.save(data_dir + '\im_data_complex_0.9', im_data_complex)

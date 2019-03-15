@@ -2,7 +2,8 @@
 """
 Created on Tue Feb 19 09:40:27 2019
 
-load sequential data into memory and crop the image so it can be saved in a training data set
+load sequential data into memory and crop the image so it can be saved into
+a whole data cube in memory
 
 Editor:
     Shihao Ran
@@ -12,67 +13,118 @@ Editor:
 import numpy as np
 from matplotlib import pyplot as plt
 import sys
+
+def cropImage(Etot, res, padding):
+# crop the image with padding to the resolution specified
+    # Etot: the original field to be cropped
+    # res: the resolution to be cropped to
+    # padding: the padding of the input field
+
+    # calculate the resolution after padding    
+    simRes = res * (2 * padding + 1)
     
-def cropImage(Etot, res):
-    
-    #initialize cropping
+    # initialize cropping
     cropsize = res
-    startIdx = int(np.fix(simRes /2 + 1) - np.floor(cropsize/2))
+    
+    # compute the start index and end index on the of the final image
+    startIdx = int(np.fix(simRes /2) - np.floor(cropsize/2))
     endIdx = int(startIdx + cropsize - 1)
     
+    # allocate space for the new image
     D_Et = np.zeros((cropsize, cropsize), dtype = np.complex128)
+    
+    # crop the original field
     D_Et = Etot[startIdx:endIdx+1, startIdx:endIdx+1]
-#    D_Ef = np.zeros((cropsize, cropsize), dtype = np.complex128)
-#    D_Ef = Ef_bpf[startIdx:endIdx, startIdx:endIdx]
 
     return D_Et
+
+
+def crop_data(res, padding, fov, test_size = 0.2, option = 'train'):
+# load the original individual data sets
+# crop them individually
+# then concatenate them into one data cube
+    # res: resolution AFTER cropping
+    # padding: padding of the original images
+    # fov: fov BEFORE padding
+    # test_size: the ratio of testing set when split the data set
+    # option: specify if this data set is training set or testing set
+    
+    # number of samples in the data set is calculated
+    # depend on if it is training set or testing set
+    if option == 'train':
+        total_num = np.int(num_samples * (1-test_size))
+    elif option == 'test':
+        total_num = np.int((num_samples * test_size))
+    else:
+        print('Error: Invalid data set type!')
+        return
+    
+    # allocate space for the merged data set
+    im_cropped_complex = np.zeros((total_num, res, res, 2))
+    im_cropped_intensity = np.zeros((total_num, res, res, 1))
+    y_total_data = np.zeros((total_num, 3))
+    
+    # initialize a counter for printing progress
+    cnt = 0
+    
+    # crop each data set and contatenate them
+    for h in range(num):
+        
+        # print progress
+        cnt += 1
+        sys.stdout.write('\r Cropping ' + str(cnt) + 'th ' + option + ' set!')
+        sys.stdout.flush()                                      # important
+        
+        # specify the file name
+        X_dir = data_dir + '\\' + option + r'\X_'+ option +'_%3.3d'% (h) + '.npy'
+        y_dir = data_dir + '\\' + option + r'\y_'+ option +'_%3.3d'% (h) + '.npy'
+        
+        # load the data set
+        X_data = np.load(X_dir)
+        y_data = np.load(y_dir)
+        
+        # put two channels together to represent the complex field
+        complex_X = X_data[..., 0] + X_data[..., 1] * 1j
+        
+        # compute the number of samples in this data set
+        group_num = np.int(total_num/num)
+        
+        # for each sample
+        for i in range(group_num):
+            
+            # crop the image
+            cropped_X_complex = cropImage(complex_X[i, ...], res, padding)
+            
+            # seperate the real and complex part as two channels
+            im_cropped_complex[h * group_num + i, :, :, 0] = np.real(cropped_X_complex)
+            im_cropped_complex[h * group_num + i, :, :, 1] = np.imag(cropped_X_complex)
+            
+            # calculate the intensity from the complex field
+            im_cropped_intensity[h * group_num + i, :, :, 0] = np.abs(cropped_X_complex) ** 2
+        
+        # append the labels
+        y_total_data[h * group_num: (h+1) * group_num, ...] = y_data 
+    
+    # save the merged data set
+    np.save(data_dir + '\\' + option + r'\cropped_X_'+option+'_complex', im_cropped_complex)
+    np.save(data_dir + '\\' + option + r'\cropped_X_'+option+'_intensity', im_cropped_intensity)
+    np.save(data_dir + '\\' + option + r'\y_'+option, y_total_data)
+
+    return
 
 # specify parameters of the simulation
 res = 128
 padding = 2
-fov = 30
-lambDa = 2 * np.pi
-halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
+fov = 16
 
-# get the resolution after padding the image
-simRes = res * (padding *2 + 1)
-
-# dimention of the data set
-nb_a = 20
-nb_nr = 20
-nb_ni = 20
-
-nb_img = nb_a * nb_nr * nb_ni
+test_size = 0.2
 
 # parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v8_padded'
+data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\split_data'
 
-# allocate space for the image data set
-im_cropped_complex = np.zeros((res, res, 2, nb_nr, nb_ni, nb_a))
-im_cropped_intensity = np.zeros((res, res, 1, nb_nr, nb_ni, nb_a))
+# dimention of the data set
+num = 20
+num_samples = num ** 3
 
-cnt = 0
-# band pass and crop
-for h in range(nb_a):
-    sphere_dir = data_dir + '\im_data%3.3d'% (h) + '.npy'
-    sphere_data = np.load(sphere_dir)
-    
-    complex_im = sphere_data[:,:,0,:,:] + sphere_data[:,:,1,:,:] * 1j
-    
-    for i in range(nb_nr):
-        for j in range(nb_ni):
-            cropped_im_complex = cropImage(complex_im[:, :, i, j], res)
-            im_cropped_complex[:, :, 0, i, j, h] = np.real(cropped_im_complex)
-            im_cropped_complex[:, :, 1, i, j, h] = np.imag(cropped_im_complex)
-            
-            im_cropped_intensity[:, :, 0, i, j, h] = np.abs(cropped_im_complex) ** 2
-            
-            # print progress
-            cnt += 1
-            sys.stdout.write('\r' + str(cnt / nb_img * 100)  + ' %')
-            sys.stdout.flush() # important
-
-np.save(data_dir + '\cropped_data_complex', im_cropped_complex)
-np.save(data_dir + '\cropped_data_intensity', im_cropped_intensity)
-
-
+crop_data(res, padding, fov)
+crop_data(res, padding, fov, option = 'test')

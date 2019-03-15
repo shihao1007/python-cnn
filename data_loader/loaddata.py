@@ -13,10 +13,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 image_res = 128
-nb_nr = 20
-nb_ni = 20
-nb_a = 20
-num_total_sample = nb_nr * nb_ni * nb_a
+num = 20
+num_total_sample = num ** 3
 channel = 2
 
 X_data = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\bandpassed0.9\im_data_complex_0.9.npy')
