@@ -2,6 +2,9 @@
 """
 Created on Tue Feb 26 14:37:26 2019
 
+This newer version tests the sensitive regards the a and n CNN
+Instead of B vector CNN
+
 this program generates data sets for differnet bandpass filter settings and
 test the sensitivity of the CNN to these filters
 for intensity CNN and complex CNN
@@ -75,7 +78,7 @@ def apply_bpf(Etot, bpf):
     
     #initialize cropping
     cropsize = res
-    startIdx = int(np.fix(simRes /2 + 1) - np.floor(cropsize/2))
+    startIdx = int(np.fix(simRes /2) - np.floor(cropsize/2))
     endIdx = int(startIdx + cropsize - 1)
     
     D_Et = np.zeros((cropsize, cropsize), dtype = np.complex128)
@@ -87,77 +90,49 @@ def bandpass_filtering(bpf):
     # apply bandpass filter to all the data sets
     
     # allocate space for the image data set
-    im_data_complex = np.zeros((res, res, 2, nb_nr, nb_ni, nb_a))
-    im_data_intensity = np.zeros((res, res, 1, nb_nr, nb_ni, nb_a))
+    bp_data_complex = np.zeros((num_test, res, res, 2))
+    bp_data_intensity = np.zeros((num_test, res, res, 1))
     
-    # initialize a counter for printing progress
     cnt = 0
-    
     # band pass and crop
-    for h in range(nb_a):
-        # for all the sphere sizes
-        # load in the data set for this sphere size
-        sphere_dir = data_dir + '\im_data%3.3d'% (h) + '.npy'
+    for h in range(num):
+        sphere_dir = data_dir + '\X_test_%3.3d'% (h) + '.npy'
         sphere_data = np.load(sphere_dir)
         
-        # reconstrut the complex field to calculate the intensity image
-        complex_im = sphere_data[:,:,0,:,:] + sphere_data[:,:,1,:,:] * 1j
-        intensity_im = np.abs(complex_im) ** 2
+        complex_im = sphere_data[..., 0] + sphere_data[..., 1] * 1j
         
-        # for different n values in this data set
-        for i in range(nb_nr):
-            for j in range(nb_ni):
-                
-                # apply bandpass filter to the complex field
-                filtered_im_complex = apply_bpf(complex_im[:, :, i, j], bpf)
-                
-                # save the complex image as two channel images
-                im_data_complex[:, :, 0, i, j, h] = np.real(filtered_im_complex)
-                im_data_complex[:, :, 1, i, j, h] = np.imag(filtered_im_complex)
-                
-                # apply bandpass filter to the intensity image
-                filtered_im_intensity = apply_bpf(intensity_im[:, :, i, j], bpf)
-                # after bandpass the values are complex so calculate the intensity again
-                im_data_intensity[:, :, 0, i, j, h] = np.abs(filtered_im_intensity) ** 2
-                
-                # print progress
-                cnt += 1
-                sys.stdout.write('\r' + str(cnt / nb_img * 100)  + ' %')
-                sys.stdout.flush() # important
+        for i in range(num_test_in_group):
+            filtered_im_complex = apply_bpf(complex_im[i, ...], bpf)
+            bp_data_complex[h * num_test_in_group + i, :, :, 0] = np.real(filtered_im_complex)
+            bp_data_complex[h * num_test_in_group + i, :, :, 1] = np.imag(filtered_im_complex)
+            
+            bp_data_intensity[h * num_test_in_group + i, :, :, 0] = np.abs(filtered_im_complex) ** 2     
+            
+            # print progress
+            cnt += 1
+            sys.stdout.write('\r' + str(cnt / num_test * 100)  + ' %')
+            sys.stdout.flush() # important
     
-    return im_data_complex, im_data_intensity
+    return bp_data_complex, bp_data_intensity
 
 def calculate_error(imdata, option = 'complex'):
     # make a prediction based on the input data set
     # calculate the relative error between the prediction and the testing ground truth
     # if the input data is intensity images, set the channel number to 1
     # otherwise it is complex images, set the channel number to 2
-    if option == 'intensity':
-        channel = 1
-    else:
-        channel = 2
-    
-    # pre process the input data
-    X_data = np.reshape(imdata, (res, res, channel, nb_img))
-    X_data = np.swapaxes(X_data, 0, -1)
-    X_data = np.swapaxes(X_data, -2, -1)
-    
-    # split the data set to get the testing data
-    # keep the random state same as when split the training data to make sure the testing data has not been seen by the CNN
-    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.2, random_state = 5)
     
     # use different CNN to test depend on the data set type
     if option == 'intensity':
-        y_pred = intensity_CNN.predict(X_test)
+        y_pred = intensity_CNN.predict(imdata)
     else:
-        y_pred = complex_CNN.predict(X_test)
+        y_pred = complex_CNN.predict(imdata)
+    
+    y_pred[:, 1] /= 100
     
     # calculate the relative error of the sum of the B vector
     y_off = y_test - y_pred
-    y_off_sum = np.sum(y_off, axis = 1)
-    y_test_sum = np.sum(y_test, axis = 1)
-    y_off_ratio = y_off_sum / y_test_sum
-    y_off_perc = np.abs(np.average(y_off_ratio) * 100)
+    
+    y_off_perc = np.abs(np.average(y_off / y_test, axis = 0) * 100)
     
     return y_off_perc
 
@@ -167,18 +142,18 @@ res = 128
 # padding number
 padding = 2
 # field of view
-fov = 30
+fov = 16
 # wave length
-lambDa = 2 * np.pi
+lambDa = 1
 # half of the grid size
 halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
 # center obscuration of the objective when calculating bandpass filter
 NA_in = 0.0
 # numerical aperture of the objective
-NA_out = 1.5
+NA_out = 1.2
 
 # number of different numerical apertures to be tested
-nb_NA = 30
+nb_NA = 60
 
 # allocate a list of the NA
 NA_list = np.linspace(0.1, NA_out, nb_NA)
@@ -187,33 +162,29 @@ NA_list = np.linspace(0.1, NA_out, nb_NA)
 simRes = res * (padding *2 + 1)
 
 # dimention of the data set
-nb_a = 20
-nb_nr = 20
-nb_ni = 20
+num = 20
 
 # total number of images in the data set
-nb_img = nb_a * nb_nr * nb_ni
+num_samples = num ** 3
+
+test_size = 0.2
+num_test = int(num_samples * test_size)
+num_test_in_group = int(num_test / num)
 
 # pre load y train and y test
-y_data_real = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_real.npy')
-y_data_imag = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_imag.npy')
-
-# concatenate the imaginary part of the B vector to the end of the real part of B
-y_data = np.concatenate((y_data_real, y_data_imag), axis = 0)
-# rearrange them
-y_data = np.reshape(y_data, (44, nb_img))
-y_data = np.swapaxes(y_data, 0, 1)
+y_train = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\train\y_train.npy')
+y_test = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\test\y_test.npy')
 
 # pre load intensity and complex CNNs
-complex_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\complex\complex.h5')
-intensity_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\intensity\intensity.h5')
+complex_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\complex\up_scaled_complex.h5')
+intensity_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\intensity\up_scaled_intensity.h5')
 
 # parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v8_padded'
+data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\test'
 
 # allocate space for complex and intensity accuracy
-complex_error = np.zeros((nb_NA), dtype = np.float64)
-intensity_error = np.zeros((nb_NA), dtype = np.float64)
+complex_error = np.zeros((nb_NA, 3), dtype = np.float64)
+intensity_error = np.zeros((nb_NA, 3), dtype = np.float64)
 
 # for each NA to be tested
 for NA_idx in range(nb_NA):
@@ -227,20 +198,36 @@ for NA_idx in range(nb_NA):
 
     print('Evaluating complex model \n')
     # handle complex model first
-    complex_error[NA_idx] = calculate_error(im_data_complex, option = 'complex')
+    complex_error[NA_idx, :] = calculate_error(im_data_complex, option = 'complex')
     
     print('Evaluating intensity model \n')
     # handle intensity model second
-    intensity_error[NA_idx] = calculate_error(im_data_intensity, option = 'intensity')
+    intensity_error[NA_idx, :] = calculate_error(im_data_intensity, option = 'intensity')
 
 # save the error file
-np.save(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\complex_error', complex_error)
-np.save(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\intensity_error', intensity_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\complex_error2', complex_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\intensity_error2', intensity_error)
 
+#%%
 # plot out the error
 plt.figure()
-plt.plot(NA_list, complex_error, label = 'Complex CNN')
-plt.plot(NA_list, intensity_error, label = 'Intensity CNN')
+plt.subplot(311)
+plt.plot(NA_list, complex_error[:, 0], label = 'Complex CNN')
+plt.plot(NA_list, intensity_error[:, 0], label = 'Intensity CNN')
 plt.xlabel('NA')
-plt.ylabel('Relative Error (Vector Sum)')
+plt.ylabel('Relative Error (Refractive Index)')
+plt.legend()
+
+plt.subplot(312)
+plt.plot(NA_list, complex_error[:, 1], label = 'Complex CNN')
+plt.plot(NA_list, intensity_error[:, 1], label = 'Intensity CNN')
+plt.xlabel('NA')
+plt.ylabel('Relative Error (Attenuation Coefficient)')
+plt.legend()
+
+plt.subplot(313)
+plt.plot(NA_list, complex_error[:, 2], label = 'Complex CNN')
+plt.plot(NA_list, intensity_error[:, 2], label = 'Intensity CNN')
+plt.xlabel('NA')
+plt.ylabel('Relative Error (Sphere Radius)')
 plt.legend()

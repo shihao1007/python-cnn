@@ -56,18 +56,15 @@ def BPF(halfgrid, simRes, NA_in, NA_out):
     
     return BPF
     
-def imgAtDetec(Etot, bpf):
+def apply_bpf(Etot, bpf):
     #2D fft to the total field
     Et_d = np.fft.fft2(Etot)
-#    Ef_d = np.fft.fft2(Ef)
     
     #apply bandpass filter to the fourier domain
     Et_d *= bpf
-#    Ef_d *= bpf
     
     #invert FFT back to spatial domain
     Et_bpf = np.fft.ifft2(Et_d)
-#    Ef_bpf = np.fft.ifft2(Ef_d)
     
     #initialize cropping
     cropsize = res
@@ -76,19 +73,17 @@ def imgAtDetec(Etot, bpf):
     
     D_Et = np.zeros((cropsize, cropsize), dtype = np.complex128)
     D_Et = Et_bpf[startIdx:endIdx+1, startIdx:endIdx+1]
-#    D_Ef = np.zeros((cropsize, cropsize), dtype = np.complex128)
-#    D_Ef = Ef_bpf[startIdx:endIdx, startIdx:endIdx]
 
     return D_Et
 
 # specify parameters of the simulation
 res = 128
-padding = 0
+padding = 2
 fov = 16
 lambDa = 2 * np.pi
 halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
-NA_in = 0.3
-NA_out = 0.8
+NA_in = 0.0
+NA_out = 0.6
 
 # get the resolution after padding the image
 simRes = res * (padding *2 + 1)
@@ -98,40 +93,40 @@ bpf = BPF(halfgrid, simRes, NA_in, NA_out)
 
 # dimention of the data set
 num = 20
-
 num_samples = num ** 3
+test_size = 0.2
+num_test = int(num_samples * test_size)
+num_test_in_group = int(num_test / num)
 
 # parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field'
+data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\test'
 
 # allocate space for the image data set
-im_data_complex = np.zeros((res, res, 2, num, num, num))
-im_data_intensity = np.zeros((res, res, 1, num, num, num))
+bp_data_complex = np.zeros((num_test, res, res, 2))
+bp_data_intensity = np.zeros((num_test, res, res, 1))
 
 cnt = 0
 # band pass and crop
 for h in range(num):
-    sphere_dir = data_dir + '\im_data%3.3d'% (h) + '.npy'
+    sphere_dir = data_dir + '\X_test_%3.3d'% (h) + '.npy'
     sphere_data = np.load(sphere_dir)
     
-    complex_im = sphere_data[:,:,0,:,:] + sphere_data[:,:,1,:,:] * 1j
+    complex_im = sphere_data[..., 0] + sphere_data[..., 1] * 1j
     intensity_im = np.abs(complex_im) ** 2
     
-    for i in range(num):
-        for j in range(num):
-            filtered_im_complex = imgAtDetec(complex_im[:, :, i, j], bpf)
-            im_data_complex[:, :, 0, i, j, h] = np.real(filtered_im_complex)
-            im_data_complex[:, :, 1, i, j, h] = np.imag(filtered_im_complex)
-            
-            filtered_im_intensity = imgAtDetec(intensity_im[:, :, i, j], bpf)
-            im_data_intensity[:, :, 0, i, j, h] = np.abs(filtered_im_intensity) ** 2
-            
-            # print progress
-            cnt += 1
-            sys.stdout.write('\r' + str(cnt / num_samples * 100)  + ' %')
-            sys.stdout.flush() # important
+    for i in range(num_test_in_group):
+        filtered_im_complex = apply_bpf(complex_im[i, ...], bpf)
+        bp_data_complex[h * num_test_in_group + i, :, :, 0] = np.real(filtered_im_complex)
+        bp_data_complex[h * num_test_in_group + i, :, :, 1] = np.imag(filtered_im_complex)
+        
+        bp_data_intensity[h * num_test_in_group + i, :, :, 0] = np.abs(filtered_im_complex) ** 2
+        
+        # print progress
+        cnt += 1
+        sys.stdout.write('\r' + str(cnt / num_test * 100)  + ' %')
+        sys.stdout.flush() # important
 
-np.save(data_dir + '\im_data_complex_0.9', im_data_complex)
-np.save(data_dir + '\im_data_intensity_0.9', im_data_intensity)
+np.save(data_dir + '\im_data_complex_0.6', bp_data_complex)
+np.save(data_dir + '\im_data_intensity_0.6', bp_data_intensity)
 
 

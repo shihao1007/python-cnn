@@ -61,14 +61,13 @@ for h in range(num):
     # split the training and testing set
     X_train, X_test, y_train, y_test = train_test_split(im_data,
                                                         label_h,
-                                                        test_size = 0.2,
-                                                        random_state = 5)
+                                                        test_size = 0.2)
     
     # save the training and testing set individually
-    X_train_dir = save_dir + r'\training\X_train_%3.3d'% (h)
-    y_train_dir = save_dir + r'\training\y_train_%3.3d'% (h)
-    X_test_dir = save_dir + r'\testing\X_test_%3.3d'% (h)
-    y_test_dir = save_dir + r'\testing\y_test_%3.3d'% (h)
+    X_train_dir = save_dir + r'\train\X_train_%3.3d'% (h)
+    y_train_dir = save_dir + r'\train\y_train_%3.3d'% (h)
+    X_test_dir = save_dir + r'\test\X_test_%3.3d'% (h)
+    y_test_dir = save_dir + r'\test\y_test_%3.3d'% (h)
     np.save(X_train_dir, X_train)
     np.save(y_train_dir, y_train)
     np.save(X_test_dir, X_test)
