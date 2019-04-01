@@ -63,18 +63,42 @@ def BPF(halfgrid, simRes, NA_in, NA_out):
     BPF[idex1, idex2] = 0
     
     return BPF
+
+def new_bpf(simFov, simRes, NA_in, NA_out):
+    # basically, a bandpass filter is just a circular mask
+    # with inner and outer diamater specified by the 
+    # in and out NA
+    f_x = np.fft.fftfreq(simRes, simFov/simRes)
+    
+    fx, fy = np.meshgrid(f_x, f_x)
+    
+    fxfy = np.sqrt(fx ** 2 + fy ** 2)
+    
+    bpf_test = np.zeros((simRes, simRes))
+    
+    mask_out = fxfy <= NA_out
+    mask_in = fxfy >= NA_in
+    
+    mask = np.logical_and(mask_out, mask_in)
+    
+    bpf_test[mask] = 1
+    
+    return bpf_test
     
 def apply_bpf(Etot, bpf):
     # apply the bandpass filter to the input field
     
-    #2D fft to the input field
-    Et_d = np.fft.fft2(Etot)
+    #2D fft to the total field
+    Et_d = np.fft.fft2(np.fft.fftshift(Etot))
+#    Et_return = np.fft.fft2(Etot)
+#    Ef_d = np.fft.fft2(Ef)
     
-    #apply bandpass filter in the fourier domain
+    #apply bandpass filter to the fourier domain
     Et_d *= bpf
+#    Ef_d *= bpf
     
     #invert FFT back to spatial domain
-    Et_bpf = np.fft.ifft2(Et_d)
+    Et_bpf = np.fft.fftshift(np.fft.ifft2(Et_d))
     
     #initialize cropping
     cropsize = res
@@ -130,9 +154,9 @@ def calculate_error(imdata, option = 'complex'):
     y_pred[:, 1] /= 100
     
     # calculate the relative error of the sum of the B vector
-    y_off = y_test - y_pred
+    y_off = np.abs(y_test - y_pred)
     
-    y_off_perc = np.abs(np.average(y_off / y_test, axis = 0) * 100)
+    y_off_perc = np.average(y_off / y_test, axis = 0) * 100
     
     return y_off_perc
 
@@ -156,11 +180,11 @@ NA_out = 1.2
 nb_NA = 60
 
 # allocate a list of the NA
-NA_list = np.linspace(0.1, NA_out, nb_NA)
+NA_list = np.linspace(0.2, NA_out, nb_NA)
 
 # get the resolution after padding the image
 simRes = res * (padding *2 + 1)
-
+simFov = fov * (padding *2 + 1)
 # dimention of the data set
 num = 20
 
@@ -172,7 +196,7 @@ num_test = int(num_samples * test_size)
 num_test_in_group = int(num_test / num)
 
 # pre load y train and y test
-y_train = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\train\y_train.npy')
+#y_train = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\train\y_train.npy')
 y_test = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\test\y_test.npy')
 
 # pre load intensity and complex CNNs
@@ -205,8 +229,8 @@ for NA_idx in range(nb_NA):
     intensity_error[NA_idx, :] = calculate_error(im_data_intensity, option = 'intensity')
 
 # save the error file
-np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\complex_error2', complex_error)
-np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\intensity_error2', intensity_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\complex_error4', complex_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\intensity_error4', intensity_error)
 
 #%%
 # plot out the error

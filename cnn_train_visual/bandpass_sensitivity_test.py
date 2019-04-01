@@ -173,15 +173,15 @@ lambDa = 2 * np.pi
 # half of the grid size
 halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
 # center obscuration of the objective when calculating bandpass filter
-NA_in = 0.0
+NA_in = 0.2
 # numerical aperture of the objective
-NA_out = 1.5
+NA_out = 1.2
 
 # number of different numerical apertures to be tested
-nb_NA = 30
+nb_NA = 5
 
 # allocate a list of the NA
-NA_list = np.linspace(0.1, NA_out, nb_NA)
+NA_list = np.linspace(NA_in, NA_out, nb_NA)
 
 # get the resolution after padding the image
 simRes = res * (padding *2 + 1)
@@ -194,22 +194,22 @@ nb_ni = 20
 # total number of images in the data set
 nb_img = nb_a * nb_nr * nb_ni
 
-# pre load y train and y test
-y_data_real = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_real.npy')
-y_data_imag = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_imag.npy')
-
-# concatenate the imaginary part of the B vector to the end of the real part of B
-y_data = np.concatenate((y_data_real, y_data_imag), axis = 0)
-# rearrange them
-y_data = np.reshape(y_data, (44, nb_img))
-y_data = np.swapaxes(y_data, 0, 1)
-
-# pre load intensity and complex CNNs
-complex_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\complex\complex.h5')
-intensity_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\intensity\intensity.h5')
-
-# parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v8_padded'
+## pre load y train and y test
+#y_data_real = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_real.npy')
+#y_data_imag = np.load(r'D:\irimages\irholography\CNN\data_v8_padded\B_data_imag.npy')
+#
+## concatenate the imaginary part of the B vector to the end of the real part of B
+#y_data = np.concatenate((y_data_real, y_data_imag), axis = 0)
+## rearrange them
+#y_data = np.reshape(y_data, (44, nb_img))
+#y_data = np.swapaxes(y_data, 0, 1)
+#
+## pre load intensity and complex CNNs
+#complex_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\complex\complex.h5')
+#intensity_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v10_padded_2\intensity\intensity.h5')
+#
+## parent directory of the data set
+#data_dir = r'D:\irimages\irholography\CNN\data_v8_padded'
 
 # allocate space for complex and intensity accuracy
 complex_error = np.zeros((nb_NA), dtype = np.float64)

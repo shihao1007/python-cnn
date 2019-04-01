@@ -15,7 +15,7 @@ import numpy as np
 
 #evaluation for a and n
 
-y_off = y_test - y_pred
+y_off = np.abs(y_test - y_pred)
 
 y_off_perc = np.abs(np.average(y_off / y_test, axis = 0) * 100)
 
