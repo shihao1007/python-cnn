@@ -19,9 +19,9 @@ from sklearn.model_selection import train_test_split
 import sys
 
 # specify the data directory
-data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\raw_data'
+data_dir = r'D:\irimages\irholography\CNN\data_v10_far_field\raw_data'
 # specify the split data directory
-save_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\split_data'
+save_dir = r'C:\copyofdata\split_data'
 
 # load the labels
 label = np.load(data_dir + '\lable_data.npy')
@@ -29,7 +29,7 @@ label = np.load(data_dir + '\lable_data.npy')
 # number of individual data sets
 num = 20
 res = 128
-padding = 2
+padding = 3
 simRes = res * (2 * padding + 1)
 cnt = 0
 # for each data set

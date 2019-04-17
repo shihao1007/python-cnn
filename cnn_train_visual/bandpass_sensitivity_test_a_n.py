@@ -156,7 +156,7 @@ def calculate_error(imdata, option = 'complex'):
     # calculate the relative error of the sum of the B vector
     y_off = np.abs(y_test - y_pred)
     
-    y_off_perc = np.average(y_off / y_test, axis = 0) * 100
+    y_off_perc = np.average(y_off / [2.0, 0.05, 2.0], axis = 0) * 100
     
     return y_off_perc
 
@@ -164,7 +164,7 @@ def calculate_error(imdata, option = 'complex'):
 # resolution of the image before padding
 res = 128
 # padding number
-padding = 2
+padding = 3
 # field of view
 fov = 16
 # wave length
@@ -174,13 +174,13 @@ halfgrid = np.ceil(fov / 2) * (padding * 2 + 1)
 # center obscuration of the objective when calculating bandpass filter
 NA_in = 0.0
 # numerical aperture of the objective
-NA_out = 1.2
+NA_out = 1
 
 # number of different numerical apertures to be tested
-nb_NA = 60
+nb_NA = 10
 
 # allocate a list of the NA
-NA_list = np.linspace(0.2, NA_out, nb_NA)
+NA_list = np.linspace(0.05, NA_out, nb_NA)
 
 # get the resolution after padding the image
 simRes = res * (padding *2 + 1)
@@ -197,14 +197,14 @@ num_test_in_group = int(num_test / num)
 
 # pre load y train and y test
 #y_train = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\train\y_train.npy')
-y_test = np.load(r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\test\y_test.npy')
+y_test = np.load(r'D:\irimages\irholography\CNN\data_v10_far_field\split_data\test\y_test.npy')
 
 # pre load intensity and complex CNNs
-complex_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\complex\up_scaled_complex.h5')
-intensity_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\intensity\up_scaled_intensity.h5')
+complex_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v12_far_field_a_n\complex\complex_model30.h5')
+intensity_CNN = load_model(r'D:\irimages\irholography\CNN\CNN_v12_far_field_a_n\intensity\intensity_model30.h5')
 
 # parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\split_data\test'
+data_dir = r'D:\irimages\irholography\CNN\data_v10_far_field\split_data\test'
 
 # allocate space for complex and intensity accuracy
 complex_error = np.zeros((nb_NA, 3), dtype = np.float64)
@@ -229,8 +229,8 @@ for NA_idx in range(nb_NA):
     intensity_error[NA_idx, :] = calculate_error(im_data_intensity, option = 'intensity')
 
 # save the error file
-np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\complex_error4', complex_error)
-np.save(r'D:\irimages\irholography\CNN\CNN_v11_far_field_a_n\intensity_error4', intensity_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v12_far_field_a_n\complex_error2', complex_error)
+np.save(r'D:\irimages\irholography\CNN\CNN_v12_far_field_a_n\intensity_error2', intensity_error)
 
 #%%
 # plot out the error

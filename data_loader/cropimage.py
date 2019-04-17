@@ -106,22 +106,22 @@ def crop_data(res, padding, fov, test_size = 0.2, option = 'train'):
         y_total_data[h * group_num: (h+1) * group_num, ...] = y_data 
     
     # save the merged data set
-    np.save(data_dir + '\\' + option + r'\cropped_X_'+option+'_complex', im_cropped_complex)
-    np.save(data_dir + '\\' + option + r'\cropped_X_'+option+'_intensity', im_cropped_intensity)
-    np.save(data_dir + '\\' + option + r'\y_'+option, y_total_data)
+    np.save(save_dir + '\\' + option + r'\cropped_X_'+option+'_complex', im_cropped_complex)
+    np.save(save_dir + '\\' + option + r'\cropped_X_'+option+'_intensity', im_cropped_intensity)
+    np.save(save_dir + '\\' + option + r'\y_'+option, y_total_data)
 
     return
 
 # specify parameters of the simulation
 res = 128
-padding = 2
+padding = 3
 fov = 16
 
 test_size = 0.2
 
 # parent directory of the data set
-data_dir = r'D:\irimages\irholography\CNN\data_v9_far_field\split_data'
-
+data_dir = r'C:\copyofdata\split_data'
+save_dir = r'D:\irimages\irholography\CNN\data_v10_far_field\split_data'
 # dimention of the data set
 num = 20
 num_samples = num ** 3
