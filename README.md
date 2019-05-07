@@ -1,7 +1,7 @@
 # python-cnn
 Python package for CNN pipelines
 
-Five folders contains different steps for the workflow:
+Four folders contains different steps for the workflow:
 
 1 ./data_generate contains scripts for geneating 2-D near field, far field and traditional Mie scattering simulations.
 
