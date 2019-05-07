@@ -66,20 +66,20 @@ amp = 40
 low = 0.9
 high = 1
 
-X_test_w_noise, noise = band_noise(X_test, amp, low, high)
+X_test_w_noise, noise = band_noise(sample1, amp, low, high)
 
 plt.figure()
 plt.subplot(131)
-plt.imshow(np.real(noise[0, :,:,0]))
+plt.imshow(np.real(noise[:,0]))
 plt.title('Noise')
 plt.colorbar()
 
 plt.subplot(132)
-plt.imshow(np.real(X_test[0, :,:,0]))
+plt.imshow(np.real(sample1[:,0]))
 plt.title('Raw Image')
 plt.colorbar()
 
 plt.subplot(133)
-plt.imshow(np.real(X_test_w_noise[0, :,:,0]))
+plt.imshow(np.real(X_test_w_noise[:,0]))
 plt.title('Noise + Image')
 plt.colorbar()

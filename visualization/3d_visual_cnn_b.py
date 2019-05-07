@@ -1,11 +1,12 @@
-
+# -*- coding: utf-8 -*-
 """
+Created on Mon May  6 18:22:35 2019
+
 3D visualization of the predition results VS. the testing ground truth
 Sphere index is randomly selected in the data set
 
 Editor:
     Shihao Ran
-    
     STIM Laboratory
 """
 
