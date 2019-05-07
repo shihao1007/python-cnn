@@ -18,9 +18,6 @@ from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D
 from keras.layers import Flatten
 from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers.normalization import BatchNormalization
-from sklearn.model_selection import train_test_split
 
 image_res = 128
 num = 20
@@ -42,16 +39,6 @@ regressor.add(MaxPooling2D(pool_size = (2, 2)))
 regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
 
 regressor.add(MaxPooling2D(pool_size = (2, 2)))
-#
-#regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-#
-#regressor.add(MaxPooling2D(pool_size = (2, 2)))
-#
-##regressor.add(MaxPooling2D(pool_size = (2, 2)))
-#
-#regressor.add(Convolution2D(32, (3, 3), activation = 'relu'))
-#
-#regressor.add(MaxPooling2D(pool_size = (2, 2)))
 
 regressor.add(Flatten())
 
@@ -118,40 +105,5 @@ plt.plot(y_test[::32,2], label = 'Ground Truth')
 plt.plot(y_pred[::32,2], linestyle='dashed', label = 'Prediction')
 plt.legend()
 plt.title('Radius')
-#
-#from tensorflow.python.client import device_lib
-#def get_available_gpus():
-#    local_device_protos = device_lib.list_local_devices()
-#    
-#    return[x.name for x in local_device_protos if x.device_type == 'GPU']
-#
-#
-#get_available_gpus()
 
 regressor.save(r'D:\irimages\irholography\CNN\CNN_v12_far_field_a_n\intensity\intensity_v0.h5')
-
-#from keras.models import load_model
-#cnnv7 = load_model(r'D:\irimages\irholography\CNN\CNN_v2\model_v7_best.h5')
-#
-#y_pred = cnnv7.predict(X_test)
-#
-#x_index = np.arange(0, np.size(y_test[::20,0]), 1)
-#
-#plt.figure()
-#plt.subplot(3,1,1)
-#plt.scatter(x_index, y_test[::20,0], s = 2, label = 'Ground Truth')
-#plt.scatter(x_index, y_pred[::20,0], s = 2, label = 'Prediction')
-#plt.legend()
-#plt.title('Real Part')
-#
-#plt.subplot(3,1,2)
-#plt.scatter(x_index, y_test[::20,1], s = 2, label = 'Ground Truth')
-#plt.scatter(x_index, y_pred[::20,1], s = 2, label = 'Prediction')
-#plt.legend()
-#plt.title('Imaginary Part')
-#
-#plt.subplot(3,1,3)
-#plt.scatter(x_index, y_test[::20,2], s = 2, label = 'Ground Truth')
-#plt.scatter(x_index, y_pred[::20,2], s = 2, label = 'Prediction')
-#plt.legend()
-#plt.title('Radius')

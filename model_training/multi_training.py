@@ -14,16 +14,13 @@ Editor:
 #%%
 # import necessary packages
 import numpy as np
-from matplotlib import pyplot as plt
 
 from keras.models import Sequential
 from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D
 from keras.layers import Flatten
 from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers.normalization import BatchNormalization
-from sklearn.model_selection import train_test_split
+
 
 #%%
 # define data size
@@ -65,16 +62,6 @@ def create_cnn(option):
     regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
     
     regressor.add(MaxPooling2D(pool_size = (2, 2)))
-#    
-#    regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-#    
-#    regressor.add(MaxPooling2D(pool_size = (2, 2)))
-#    
-#    regressor.add(Convolution2D(64, (3, 3), activation = 'relu'))
-#    
-#    regressor.add(Convolution2D(32, (3, 3), activation = 'relu'))
-    
-#    regressor.add(MaxPooling2D(pool_size = (2, 2)))
     
     regressor.add(Flatten())
     

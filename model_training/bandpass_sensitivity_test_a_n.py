@@ -18,98 +18,11 @@ Editor:
 import matplotlib.pyplot as plt
 import numpy as np
 # import keras and sklearn packages
-from sklearn.model_selection import train_test_split
 from keras.models import load_model
-
 import sys
+import chis.MieScattering as ms
 
-def BPF(halfgrid, simRes, NA_in, NA_out):
-    #create a bandpass filter
-    #change coordinates into frequency domain
-        
-    df = 1/(halfgrid*2)
-    
-    iv, iu = np.meshgrid(np.arange(0, simRes, 1), np.arange(0, simRes, 1))
-    
-    u = np.zeros(iu.shape)
-    v = np.zeros(iv.shape)
-    
-    #initialize the filter as All Pass
-    BPF = np.ones(iv.shape)
-    
-    idex1, idex2 = np.where(iu <= simRes/2)
-    u[idex1, idex2] = iu[idex1, idex2]
-    
-    idex1, idex2 = np.where(iu > simRes/2)
-    u[idex1, idex2] = iu[idex1, idex2] - simRes +1
-    
-    u *= df
-    
-    idex1, idex2 = np.where(iv <= simRes/2)
-    v[idex1, idex2] = iv[idex1, idex2]
-    
-    idex1, idex2 = np.where(iv > simRes/2)
-    v[idex1, idex2] = iv[idex1, idex2] - simRes +1
-    
-    v *= df
-    
-    magf = np.sqrt(u ** 2 + v ** 2)
-    
-    #block lower frequency
-    idex1, idex2 = np.where(magf < NA_in / lambDa)
-    BPF[idex1, idex2] = 0
-    #block higher frequency
-    idex1, idex2 = np.where(magf > NA_out / lambDa)
-    BPF[idex1, idex2] = 0
-    
-    return BPF
-
-def new_bpf(simFov, simRes, NA_in, NA_out):
-    # basically, a bandpass filter is just a circular mask
-    # with inner and outer diamater specified by the 
-    # in and out NA
-    f_x = np.fft.fftfreq(simRes, simFov/simRes)
-    
-    fx, fy = np.meshgrid(f_x, f_x)
-    
-    fxfy = np.sqrt(fx ** 2 + fy ** 2)
-    
-    bpf_test = np.zeros((simRes, simRes))
-    
-    mask_out = fxfy <= NA_out
-    mask_in = fxfy >= NA_in
-    
-    mask = np.logical_and(mask_out, mask_in)
-    
-    bpf_test[mask] = 1
-    
-    return bpf_test
-    
-def apply_bpf(Etot, bpf):
-    # apply the bandpass filter to the input field
-    
-    #2D fft to the total field
-    Et_d = np.fft.fft2(np.fft.fftshift(Etot))
-#    Et_return = np.fft.fft2(Etot)
-#    Ef_d = np.fft.fft2(Ef)
-    
-    #apply bandpass filter to the fourier domain
-    Et_d *= bpf
-#    Ef_d *= bpf
-    
-    #invert FFT back to spatial domain
-    Et_bpf = np.fft.fftshift(np.fft.ifft2(Et_d))
-    
-    #initialize cropping
-    cropsize = res
-    startIdx = int(np.fix(simRes /2) - np.floor(cropsize/2))
-    endIdx = int(startIdx + cropsize - 1)
-    
-    D_Et = np.zeros((cropsize, cropsize), dtype = np.complex128)
-    D_Et = Et_bpf[startIdx:endIdx+1, startIdx:endIdx+1]
-    
-    return D_Et
-
+#%%
 def bandpass_filtering(bpf):
     # apply bandpass filter to all the data sets
     
@@ -126,7 +39,7 @@ def bandpass_filtering(bpf):
         complex_im = sphere_data[..., 0] + sphere_data[..., 1] * 1j
         
         for i in range(num_test_in_group):
-            filtered_im_complex = apply_bpf(complex_im[i, ...], bpf)
+            filtered_im_complex = ms.apply_filter(res, fov, complex_im[i, ...], bpf)
             bp_data_complex[h * num_test_in_group + i, :, :, 0] = np.real(filtered_im_complex)
             bp_data_complex[h * num_test_in_group + i, :, :, 1] = np.imag(filtered_im_complex)
             
@@ -214,7 +127,7 @@ intensity_error = np.zeros((nb_NA, 3), dtype = np.float64)
 for NA_idx in range(nb_NA):
     
     # calculate the band pass filter
-    bpf = BPF(halfgrid, simRes, NA_in, NA_list[NA_idx])
+    bpf = ms.bandpass_filter(simRes, simFov, NA_in, NA_list[NA_idx])
     
     # print some info about the idx of NA
     print('Banbpassing the ' + str(NA_idx + 1) + 'th filter \n')
